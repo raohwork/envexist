@@ -3,7 +3,10 @@ package envexist
 import (
 	"fmt"
 	"os"
+	"sort"
 	"strings"
+
+	"golang.org/x/text/width"
 )
 
 func tokey(m, k string) (ret string) {
@@ -150,54 +153,108 @@ func PrintEnvList() {
 	fmt.Print("+----------------------+----------------------+---------------------------+-----------------+\n")
 
 	for _, m := range modules {
-		for n, s := range m.params {
+		// sort keys
+		keys := make([]string, 0, len(m.params))
+		for n, _ := range m.params {
+			keys = append(keys, n)
+		}
+		sort.Sort(sort.StringSlice(keys))
+
+		for _, n := range keys {
+			s := m.params[n]
 			dumpSpec(m.name, n, s)
 		}
 	}
 }
 
-func stripNewline(orig string, l int) (ret string) {
-	idx := strings.Index(orig, "\n")
-	for idx != -1 {
-		pos := idx % l
-		pos = l - pos
-		orig = strings.Replace(orig, "\n", strings.Repeat(" ", pos), 1)
-		idx = strings.Index(orig, "\n")
+func toarr(orig string, sz int) (ret []string) {
+	x := strings.Split(orig, "\n")
+	ret = make([]string, 0, len(x))
+	for _, s := range x {
+		arr := []rune(s)
+		l := 0
+		buf := []rune{}
+		for _, a := range arr {
+			p := width.LookupRune(a)
+			w := p.Kind()
+			if w == width.EastAsianWide || w == width.EastAsianFullwidth {
+				l += 1
+			}
+			l += 1
+			if l > sz {
+				ret = append(ret, string(buf))
+				l = 0
+				buf = []rune{a}
+				continue
+			}
+
+			buf = append(buf, a)
+			if l == sz {
+				ret = append(ret, string(buf))
+				l = 0
+				buf = []rune{}
+				continue
+			}
+		}
+
+		if l != 0 {
+			ret = append(ret, string(buf))
+		}
 	}
 
-	return orig
+	return
 }
 
-func cut(orig string, l int, c bool) (res, rest string, cutted bool) {
-	if len(orig) <= l {
-		return orig, "", c
+func max(arr []string, l int) (ret int) {
+	if x := len(arr); x > l {
+		return x
 	}
-	return orig[:l], orig[l:], true
+	return l
+}
+
+func pad(arr []string, l int) (ret []string) {
+	delta := l - len(arr)
+	if delta < 1 {
+		return arr
+	}
+
+	x := make([]string, delta)
+	ret = append(arr, x...)
+	return
 }
 
 func dumpSpec(m, n string, s *spec) {
 	defer fmt.Print("+----------------------+----------------------+---------------------------+-----------------+\n")
 
-	name := stripNewline(tokey(m, n), 20)
-	val := stripNewline(s.val, 20)
-	desc := stripNewline(s.desc, 25)
-	ex := stripNewline(s.example, 15)
-	cutted := true
+	l := 0
+	name := toarr(tokey(m, n), 20)
+	l = max(name, l)
+	val := toarr(s.val, 20)
+	l = max(val, l)
+	desc := toarr(s.desc, 25)
+	l = max(desc, l)
+	ex := toarr(s.example, 15)
+	l = max(ex, l)
+
+	name = pad(name, l)
+	val = pad(val, l)
+	desc = pad(desc, l)
+	ex = pad(ex, l)
+
 	req := " "
 	if s.required {
 		req = "*"
 	}
 
-	for cutted {
-		var n, v, d, e string
-		c := false
-		n, name, c = cut(name, 20, c)
-		v, val, c = cut(val, 20, c)
-		d, desc, c = cut(desc, 25, c)
-		e, ex, c = cut(ex, 15, c)
-		cutted = c
-
-		fmt.Printf("|%s%-20s | %-20s | %-25s | %-15s |\n", req, n, v, d, e)
+	for x := 0; x < l; x++ {
+		fmt.Printf(
+			"|%s%-20s | %-20s | %-25s | %-15s |\n",
+			req,
+			name[x],
+			val[x],
+			desc[x],
+			ex[x],
+		)
 		req = " "
 	}
 }

@@ -181,3 +181,44 @@ func TestDataInMain(t *testing.T) {
 		})
 	}
 }
+
+func TestToArr(t *testing.T) {
+	cases := []struct {
+		str    string
+		expect []string
+	}{
+		{
+			str:    "abc",
+			expect: []string{"abc"},
+		},
+		{
+			str:    "abc\n123",
+			expect: []string{"abc", "123"},
+		},
+		{
+			str:    "abc\n1234567",
+			expect: []string{"abc", "12345", "67"},
+		},
+		{
+			str:    "abc\n12三4567",
+			expect: []string{"abc", "12三4", "567"},
+		},
+		{
+			str:    "abc\n123四567",
+			expect: []string{"abc", "123四", "567"},
+		},
+		{
+			str:    "abc\n1234五67",
+			expect: []string{"abc", "1234", "五67"},
+		},
+	}
+
+	for idx, c := range cases {
+		t.Run(fmt.Sprintf("#%d", idx), func(t *testing.T) {
+			actual := toarr(c.str, 5)
+			if !reflect.DeepEqual(actual, c.expect) {
+				t.Fatalf("expected %+v, got %+v", c.expect, actual)
+			}
+		})
+	}
+}
