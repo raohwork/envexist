@@ -189,27 +189,27 @@ func TestToArr(t *testing.T) {
 	}{
 		{
 			str:    "abc",
-			expect: []string{"abc"},
+			expect: []string{"abc  "},
 		},
 		{
 			str:    "abc\n123",
-			expect: []string{"abc", "123"},
+			expect: []string{"abc  ", "123  "},
 		},
 		{
 			str:    "abc\n1234567",
-			expect: []string{"abc", "12345", "67"},
+			expect: []string{"abc  ", "12345", "67   "},
 		},
 		{
 			str:    "abc\n12三4567",
-			expect: []string{"abc", "12三4", "567"},
+			expect: []string{"abc  ", "12三4", "567  "},
 		},
 		{
 			str:    "abc\n123四567",
-			expect: []string{"abc", "123四", "567"},
+			expect: []string{"abc  ", "123四", "567  "},
 		},
 		{
 			str:    "abc\n1234五67",
-			expect: []string{"abc", "1234", "五67"},
+			expect: []string{"abc  ", "1234 ", "五67 "},
 		},
 	}
 

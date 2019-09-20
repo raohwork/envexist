@@ -6,7 +6,7 @@ func Example() {
 	// reset envexist as we're in test environment, you should not need this
 	Release()
 	// simulate
-	os.Setenv("MYMODULE_PARAM_2", "QoQ")
+	os.Setenv("MYMODULE_PARAM_2", "中文")
 
 	m, ch := Main("MYMODULE")
 	m.Need("PARAM_1", "a super detailed and descriptive decription which introduces how this variable should be and what it should do", "example value")
@@ -31,6 +31,6 @@ func Example() {
 	// |                      |                      | ble should be and what it |                 |
 	// |                      |                      |  should do                |                 |
 	// +----------------------+----------------------+---------------------------+-----------------+
-	// | MYMODULE_PARAM_2     | QoQ                  | desc                      | example         |
+	// | MYMODULE_PARAM_2     | 中文                 | desc                      | example         |
 	// +----------------------+----------------------+---------------------------+-----------------+
 }

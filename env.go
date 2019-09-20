@@ -177,17 +177,27 @@ func toarr(orig string, sz int) (ret []string) {
 		for _, a := range arr {
 			p := width.LookupRune(a)
 			w := p.Kind()
+			cur := 1
 			if w == width.EastAsianWide || w == width.EastAsianFullwidth {
-				l += 1
+				cur += 1
 			}
-			l += 1
-			if l > sz {
+			if l+cur > sz {
+				// CJK double width
+				delta := sz - l
+				if delta > 0 {
+					tmp := make([]rune, delta)
+					for idx, _ := range tmp {
+						tmp[idx] = ' '
+					}
+					buf = append(buf, tmp...)
+				}
 				ret = append(ret, string(buf))
-				l = 0
+				l = cur
 				buf = []rune{a}
 				continue
 			}
 
+			l += cur
 			buf = append(buf, a)
 			if l == sz {
 				ret = append(ret, string(buf))
@@ -198,6 +208,14 @@ func toarr(orig string, sz int) (ret []string) {
 		}
 
 		if l != 0 {
+			delta := sz - l
+			if delta > 0 {
+				tmp := make([]rune, delta)
+				for idx, _ := range tmp {
+					tmp[idx] = ' '
+				}
+				buf = append(buf, tmp...)
+			}
 			ret = append(ret, string(buf))
 		}
 	}
@@ -212,13 +230,17 @@ func max(arr []string, l int) (ret int) {
 	return l
 }
 
-func pad(arr []string, l int) (ret []string) {
+func pad(arr []string, l, sz int) (ret []string) {
 	delta := l - len(arr)
 	if delta < 1 {
 		return arr
 	}
 
+	empty := strings.Repeat(" ", sz)
 	x := make([]string, delta)
+	for idx, _ := range x {
+		x[idx] = empty
+	}
 	ret = append(arr, x...)
 	return
 }
@@ -236,10 +258,10 @@ func dumpSpec(m, n string, s *spec) {
 	ex := toarr(s.example, 15)
 	l = max(ex, l)
 
-	name = pad(name, l)
-	val = pad(val, l)
-	desc = pad(desc, l)
-	ex = pad(ex, l)
+	name = pad(name, l, 20)
+	val = pad(val, l, 20)
+	desc = pad(desc, l, 25)
+	ex = pad(ex, l, 15)
 
 	req := " "
 	if s.required {
@@ -248,7 +270,7 @@ func dumpSpec(m, n string, s *spec) {
 
 	for x := 0; x < l; x++ {
 		fmt.Printf(
-			"|%s%-20s | %-20s | %-25s | %-15s |\n",
+			"|%s%s | %s | %s | %s |\n",
 			req,
 			name[x],
 			val[x],
