@@ -1,3 +1,7 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+
 package envexist
 
 import (
@@ -14,11 +18,12 @@ func tokey(m, k string) (ret string) {
 }
 
 type spec struct {
-	desc     string
-	example  string
-	val      string
-	required bool
-	ok       bool
+	desc      string
+	example   string
+	val       string
+	isDefault bool
+	required  bool
+	ok        bool
 }
 
 // Module represents a set of env vars
@@ -32,8 +37,12 @@ func (m *Module) notify() {
 	data := map[string]string{}
 	for n, s := range m.params {
 		if s.val == "" {
+			if s.isDefault {
+				data[n] = s.example
+			}
 			continue
 		}
+
 		data[n] = s.val
 	}
 
@@ -45,6 +54,11 @@ func (m *Module) notify() {
 // Need registers a required env var
 //
 // It ALWAYS converts name to uppercase.
+//
+// You have to set corresponding envvar or Parse() will fail.
+//
+// When handling returned data in callback (or channel), it is guaranteed
+// that _, ok := data[name] to be true.
 func (m *Module) Need(name string, desc, example string) (ret *Module) {
 	name = strings.ToUpper(name)
 	v := os.Getenv(tokey(m.name, name))
@@ -62,6 +76,11 @@ func (m *Module) Need(name string, desc, example string) (ret *Module) {
 // Want registers an optional env var
 //
 // It ALWAYS converts name to uppercase.
+//
+// You can omit the envvar and Parse() will still success
+//
+// The element will be emitted in data of callback if corresponding envvar
+// is not set.
 func (m *Module) Want(name string, desc, example string) (ret *Module) {
 	name = strings.ToUpper(name)
 	x := &spec{
@@ -70,6 +89,26 @@ func (m *Module) Want(name string, desc, example string) (ret *Module) {
 		val:      os.Getenv(tokey(m.name, name)),
 		required: false,
 		ok:       true,
+	}
+	m.params[name] = x
+	return m
+}
+
+// May registers an optional env var with default value in example
+//
+// It ALWAYS converts name to uppercase.
+//
+// You can always get some value if Parse() returns true. If corresponding
+// envvar is not set, default value is used instead.
+func (m *Module) May(name string, desc, example string) (ret *Module) {
+	name = strings.ToUpper(name)
+	x := &spec{
+		desc:      desc,
+		example:   example,
+		val:       os.Getenv(tokey(m.name, name)),
+		isDefault: true,
+		required:  false,
+		ok:        true,
 	}
 	m.params[name] = x
 	return m
@@ -84,7 +123,7 @@ var (
 // The env var will passed through data after calling Parse()
 //
 // It ALWAYS converts name to uppercase.
-func New(name string, cb func(map[string]string)) (ret *Module) {
+func New(name string, cb func(data map[string]string)) (ret *Module) {
 	ret = &Module{
 		name:   strings.ToUpper(name),
 		cb:     cb,
@@ -268,15 +307,20 @@ func dumpSpec(m, n string, s *spec) {
 		req = "*"
 	}
 
+	def := " "
+	if s.isDefault {
+		def = "*"
+	}
 	for x := 0; x < l; x++ {
 		fmt.Printf(
-			"|%s%s | %s | %s | %s |\n",
+			"|%s%s | %s | %s |%s%s |\n",
 			req,
 			name[x],
 			val[x],
 			desc[x],
+			def,
 			ex[x],
 		)
-		req = " "
+		req, def = " ", " "
 	}
 }

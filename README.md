@@ -16,7 +16,7 @@ var DB *sql.DB
 func init() {
     m, data := envexist.New("mylib", mysetup)
     m.Need("DB_CONN", "connect string for mysql", "user:pass@tcp(mysql)/mydb")
-    m.Want("DB_PARAM", "additional param for constr", "parseTime=true")
+    m.May("DB_PARAM", "additional param for constr", "parseTime=true")
 }
 
 func mysetup(env map[string]string) {
@@ -58,3 +58,7 @@ func main() {
     // other application codes
 }
 ```
+
+# License
+
+MPL 2.0

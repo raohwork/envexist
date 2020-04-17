@@ -1,3 +1,7 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+
 package envexist
 
 import (
@@ -10,8 +14,10 @@ import (
 const (
 	K1 = "KEY_1"
 	K2 = "KEY_2"
+	K3 = "KEY_3"
 	M1 = "M1"
 	M2 = "M2"
+	M3 = "M3"
 )
 
 func s(t *testing.T, m, k, v string) {
@@ -25,8 +31,13 @@ func s(t *testing.T, m, k, v string) {
 func reset(t *testing.T) {
 	s(t, M1, K1, "")
 	s(t, M1, K2, "")
+	s(t, M1, K3, "")
 	s(t, M2, K1, "")
 	s(t, M2, K2, "")
+	s(t, M2, K3, "")
+	s(t, M3, K1, "")
+	s(t, M3, K2, "")
+	s(t, M3, K3, "")
 	Release()
 }
 
@@ -86,6 +97,41 @@ func TestOneModuleFailed(t *testing.T) {
 	m.Want(K2, "", "")
 	if Parse() {
 		t.Fatal("should be false as M2_K1 is empty")
+	}
+}
+
+func TestLackDefaultValue(t *testing.T) {
+	reset(t)
+	m, ch := Main(M1)
+	m.May(K1, "", "1")
+	if !Parse() {
+		t.Fatal("should be safe to omit with May")
+	}
+	x := <-ch
+	res, ok := x[K1]
+	if !ok {
+		t.Fatal("there's no needed data in result")
+	}
+	if res != "1" {
+		t.Fatal("unexpected result:", res)
+	}
+}
+
+func TestSetDefaultValue(t *testing.T) {
+	reset(t)
+	s(t, M1, K1, "2")
+	m, ch := Main(M1)
+	m.May(K1, "", "1")
+	if !Parse() {
+		t.Fatal("should be safe to overwrite with May")
+	}
+	x := <-ch
+	res, ok := x[K1]
+	if !ok {
+		t.Fatal("there's no needed data in result")
+	}
+	if res != "2" {
+		t.Fatal("unexpected result:", res)
 	}
 }
 
